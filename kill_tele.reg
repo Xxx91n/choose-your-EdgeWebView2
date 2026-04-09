@@ -1,0 +1,31 @@
+Windows Registry Editor Version 5.00
+
+; 停止实验/配置服务通信（RestrictedMode = 0） Stop experimental/configuration service communication
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge]
+"ExperimentationAndConfigurationServiceControl"=dword:00000000
+
+; 禁用指标上报（MetricsReportingEnabled） Disable metric reporting
+"MetricsReportingEnabled"=dword:00000000
+
+; 禁止将浏览数据发送给微软改进服务 Prohibit browsing data from being sent to Microsoft to improve services
+"SendSiteInfoToImproveServices"=dword:00000000
+
+; 禁用 Edge/WebView2 的诊断数据 Disable diagnostic data for Edge/WebView2
+"DiagnosticData"=dword:00000000
+
+; 禁用 Smart Screen（会访问微软服务器查询 URL 安全性） Disable Smart Screen (will access Microsoft server to query URL security)
+"SmartScreenEnabled"=dword:00000000
+
+; 关闭网络预测（会主动发起连接） Turn off network prediction (will actively initiate connections)
+"NetworkPredictionOptions"=dword:00000002
+
+; 禁止自动发送崩溃报告 Disable automatic sending of crash reports
+"EdgeCollectBrowsingDataForInference"=dword:00000000
+
+; WebView2 专属策略路径（覆盖所有调用它的 App） WebView2 exclusive policy path (covers all apps that call it)
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge\WebView2]
+"ExperimentationAndConfigurationServiceControl"=dword:00000000
+
+; Windows 全局遥测开关 Windows global telemetry switch
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\DataCollection]
+"AllowTelemetry"=dword:00000000
