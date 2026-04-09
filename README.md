@@ -4,7 +4,7 @@
 [**English**](./README_EN.md) | **简体中文**
 
 <p align="center">
-你是否想彻底摆脱 Edge 的生态，并投入到 chrome / firefox 生态中，但是发现总有一些软件依赖于 msedgewebview2 ？
+你是否想彻底摆脱 Edge ，并投入到 chrome / firefox 生态中，但是发现总有一些软件依赖于 msedgewebview2 ？
 
 当你彻底删除 Windows 当中的 Edge ，却发现一些软件又自动安装了 msedgewebview2 ，之后附带着把 Edge 又安装了一次？
 
@@ -15,7 +15,7 @@
 </div>
 
 ## 如何使用？
-- 1.下载文件[**choose_msedgewebview2.ps1**](./choose_msedgewebview2.ps1) 或者 复制文件中的所有内容
+- 1.[**下载脚本文件**](https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/choose_msedgewebview2.ps1) 或者 复制[**choose_msedgewebview2.ps1**](./choose_msedgewebview2.ps1)中的所有内容。
 - 2.右键使用管理员权限运行脚本，或者使用管理员权限打开 Powershell 粘贴脚本内容并回车。
 - 3.根据提示，选择模式1，粘贴你的msedgewebview2.exe所在的相对路径并回车，例如：D:\Test\Microsoft.WebView2.FixedVersionRuntime.133.0.3065.92.x64
 - 4.根据提示，选择是否需要锁定相应的环境变量和注册表。
