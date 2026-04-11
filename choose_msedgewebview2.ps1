@@ -3,7 +3,7 @@
 # https://github.com/Xxx91n/choose-your-EdgeWebView2
 # ============================================================
 
-# ── [0] 管理员权限检测 ────────────────────────────────────────
+# ── [0] 管理员权限检测 ─────────────────────────────────────────────
 $IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator
 )
@@ -17,23 +17,39 @@ if (-not $IsAdmin) {
     exit 1
 }
 
-# ── [0] 语言检测（UI 语言，zh-* = 中文，其余默认英文）─────────
-$UILang    = (Get-UICulture).Name   # 例如 zh-CN / zh-TW / zh-HK / en-US / ja-JP ...
-$IsChinese = $UILang -match '^zh'
+# ── [0] 手动选择语言 ───────────────────────────────────────────────
+Write-Host ""
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host "  choose-your-EdgeWebView2" -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Select language / 选择语言:"
+Write-Host "  [1] English"
+Write-Host "  [2] 简体中文"
+Write-Host ""
+
+$LangChoice = $null
+while ($LangChoice -notin @("1","2")) {
+    $LangChoice = (Read-Host "Enter / 输入 (1 or 2)").Trim()
+}
+
+$IsChinese = ($LangChoice -eq "2")
 
 if ($IsChinese) {
     $T = @{
-        Welcome        = "欢迎使用 choose-your-EdgeWebView2"
         Separator      = "============================================================"
         ChooseMode     = @"
 请选择模式：
   [1] 设置 WebView2 路径（写入环境变量 + 注册表）
-  [2] 锁定（为已写入的路径加 ACL，防止被其他程序覆盖）
+  [2] 锁定（为已写入的路径添加 ACL，防止被其他程序覆盖）
   [3] 解锁（移除 ACL 锁定）
 "@
         InputMode      = "请输入模式编号 (1 / 2 / 3): "
         InvalidMode    = "[错误] 无效的模式，请输入 1、2 或 3。"
-        InputPath      = "请粘贴 msedgewebview2.exe 所在文件夹的完整路径`n（例如：D:\Test\Microsoft.WebView2.FixedVersionRuntime.133.0.3065.92.x64）`n路径: "
+        InputPath      = @"
+请粘贴 msedgewebview2.exe 所在文件夹的完整路径
+（例如：D:\Test\Microsoft.WebView2.FixedVersionRuntime.133.0.3065.92.x64）
+路径: "@
         PathOK         = "[OK] 路径有效，已检测到 msedgewebview2.exe"
         PathFail       = "[错误] 该路径下未找到 msedgewebview2.exe，请重新输入。"
         VersionDetect  = "[自动检测] 版本号"
@@ -45,8 +61,10 @@ if ($IsChinese) {
         LockStep       = "[锁定] 正在为注册表路径添加 ACL 锁..."
         LockDone       = "[完成] 所有注册表 ACL 锁定已完成。"
         UnlockStep     = "[解锁] 正在移除注册表 ACL 锁..."
-        UnlockDone     = "[完成] 所有注册表 ACL 已解锁。"
-        UnlockNotFound = "[提示] 路径不存在，跳过"
+        UnlockOK       = "[OK] 已解锁"
+        UnlockNoChange = "[无变化] 未找到 Deny 规则"
+        UnlockSkip     = "[跳过] 路径不存在"
+        UnlockDone     = "[完成] WebView2 策略注册表已解锁。Environment 键从未被修改，系统变量正常。"
         MachineEnv     = "Machine 级环境变量"
         UserEnv        = "User    级环境变量"
         PolicyReg      = "策略注册表"
@@ -58,10 +76,10 @@ if ($IsChinese) {
         EnvOK          = "[OK] 已设置"
         EnvClear       = "[OK] 已清除 User 级（正确）"
         NeedMode1First = "[提示] 未检测到已写入的路径，请先使用模式 1 设置路径，再执行锁定。"
+        PressAnyKey    = "按任意键退出..."
     }
 } else {
     $T = @{
-        Welcome        = "Welcome to choose-your-EdgeWebView2"
         Separator      = "============================================================"
         ChooseMode     = @"
 Select mode:
@@ -71,7 +89,10 @@ Select mode:
 "@
         InputMode      = "Enter mode (1 / 2 / 3): "
         InvalidMode    = "[Error] Invalid mode, please enter 1, 2 or 3."
-        InputPath      = "Paste the full path to the folder containing msedgewebview2.exe`n(e.g.: D:\Test\Microsoft.WebView2.FixedVersionRuntime.133.0.3065.92.x64)`nPath: "
+        InputPath      = @"
+Paste the full path to the folder containing msedgewebview2.exe
+(e.g.: D:\Test\Microsoft.WebView2.FixedVersionRuntime.133.0.3065.92.x64)
+Path: "@
         PathOK         = "[OK] Path valid, msedgewebview2.exe found"
         PathFail       = "[Error] msedgewebview2.exe not found at that path, please re-enter."
         VersionDetect  = "[Auto-detect] Version"
@@ -83,8 +104,10 @@ Select mode:
         LockStep       = "[Lock] Adding ACL locks to registry paths..."
         LockDone       = "[Done] All registry ACL locks applied."
         UnlockStep     = "[Unlock] Removing registry ACL locks..."
-        UnlockDone     = "[Done] All registry ACLs removed."
-        UnlockNotFound = "[Skip] Path does not exist, skipping"
+        UnlockOK       = "[OK] Unlocked"
+        UnlockNoChange = "[No change] No Deny rule found"
+        UnlockSkip     = "[Skip] Path does not exist"
+        UnlockDone     = "[Done] WebView2 policy registry unlocked. The Environment key was never modified; system variables are intact."
         MachineEnv     = "Machine-level env var"
         UserEnv        = "User-level env var   "
         PolicyReg      = "Policy registry"
@@ -96,10 +119,11 @@ Select mode:
         EnvOK          = "[OK] Set"
         EnvClear       = "[OK] User-level cleared (correct)"
         NeedMode1First = "[Notice] No existing path detected. Please use Mode 1 to set the path first before locking."
+        PressAnyKey    = "Press any key to exit..."
     }
 }
 
-# ── 常量（所有 Windows 电脑相同，无需动态获取）────────────────
+# ── 常量（所有 Windows 电脑相同，无需动态获取）────────────────────
 $EnvVarName   = "WEBVIEW2_BROWSER_EXECUTABLE_FOLDER"
 $WebView2Guid = "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
 
@@ -107,12 +131,16 @@ $PolicyPath64 = "HKLM:\SOFTWARE\Policies\Microsoft\Edge\WebView2\BrowserExecutab
 $PolicyPath32 = "HKLM:\SOFTWARE\WOW6432Node\Policies\Microsoft\Edge\WebView2\BrowserExecutableFolder"
 $PolicyPathCU = "HKCU:\SOFTWARE\Policies\Microsoft\Edge\WebView2\BrowserExecutableFolder"
 $TauriPaths   = @(
-    "HKLM:\SOFTWARE\Microsoft\EdgeUpdate\Clients\$WebView2Guid",
-    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\$WebView2Guid"
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\$WebView2Guid",
+    "HKLM:\SOFTWARE\Microsoft\EdgeUpdate\Clients\$WebView2Guid"
 )
-$AllRegPaths  = @($PolicyPath64, $PolicyPath32, $PolicyPathCU) + $TauriPaths
 
-# ── 内部函数：为注册表路径添加 Deny ACL ──────────────────────
+# ACL 账户列表（策略注册表路径用）
+$PolicyACLAccounts = @("BUILTIN\Users", "NT AUTHORITY\NETWORK SERVICE", "NT AUTHORITY\LOCAL SERVICE")
+# ACL 账户列表（Tauri 注册表路径用）
+$TauriACLAccounts  = @("NT AUTHORITY\NETWORK SERVICE", "NT AUTHORITY\LOCAL SERVICE")
+
+# ── 内部函数：精确添加 Deny ACL ───────────────────────────────────
 function Add-DenyACL {
     param([string]$RegPath, [string[]]$Accounts)
     if (-not (Test-Path $RegPath)) { return }
@@ -126,33 +154,35 @@ function Add-DenyACL {
     Set-Acl -Path $RegPath -AclObject $acl
 }
 
-# ── 内部函数：移除注册表路径的所有 Deny ACL ──────────────────
+# ── 内部函数：精确移除 Deny ACL（按账户名匹配，不误删其他规则）────
 function Remove-DenyACL {
-    param([string]$RegPath)
+    param([string]$RegPath, [string[]]$Accounts)
     if (-not (Test-Path $RegPath)) {
-        Write-Host "  $($T.UnlockNotFound): $RegPath" -ForegroundColor DarkGray
+        Write-Host "  $($T.UnlockSkip): $RegPath" -ForegroundColor DarkGray
         return
     }
-    $acl = Get-Acl $RegPath
-    $denyRules = $acl.Access | Where-Object { $_.AccessControlType -eq "Deny" }
-    foreach ($rule in $denyRules) {
-        $acl.RemoveAccessRule($rule) | Out-Null
+    $acl     = Get-Acl $RegPath
+    $changed = $false
+    foreach ($acct in $Accounts) {
+        $rule = New-Object System.Security.AccessControl.RegistryAccessRule(
+            $acct, "SetValue,Delete,CreateSubKey", "None", "None", "Deny"
+        )
+        if ($acl.RemoveAccessRule($rule)) { $changed = $true }
     }
-    Set-Acl -Path $RegPath -AclObject $acl
-    Write-Host "  [OK] $RegPath" -ForegroundColor Green
+    if ($changed) {
+        Set-Acl -Path $RegPath -AclObject $acl
+        Write-Host "  $($T.UnlockOK): $RegPath" -ForegroundColor Green
+    } else {
+        Write-Host "  $($T.UnlockNoChange): $RegPath" -ForegroundColor DarkYellow
+    }
 }
 
 # ════════════════════════════════════════════════════════════
-# 启动界面
+# 主菜单
 # ════════════════════════════════════════════════════════════
-Write-Host ""
-Write-Host $T.Separator -ForegroundColor Cyan
-Write-Host "  $($T.Welcome)" -ForegroundColor Cyan
-Write-Host $T.Separator -ForegroundColor Cyan
 Write-Host ""
 Write-Host $T.ChooseMode
 
-# ── 读取模式（循环直到有效输入）─────────────────────────────
 $Mode = $null
 while ($Mode -notin @("1","2","3")) {
     $Mode = (Read-Host $T.InputMode).Trim()
@@ -167,17 +197,24 @@ while ($Mode -notin @("1","2","3")) {
 if ($Mode -eq "3") {
     Write-Host ""
     Write-Host $T.UnlockStep -ForegroundColor Cyan
-    foreach ($p in $AllRegPaths) {
-        Remove-DenyACL -RegPath $p
+
+    foreach ($p in @($PolicyPath64, $PolicyPath32, $PolicyPathCU)) {
+        Remove-DenyACL -RegPath $p -Accounts $PolicyACLAccounts
     }
+    foreach ($p in $TauriPaths) {
+        Remove-DenyACL -RegPath $p -Accounts $TauriACLAccounts
+    }
+
     Write-Host ""
     Write-Host $T.UnlockDone -ForegroundColor Green
     Write-Host ""
+    Write-Host $T.PressAnyKey -ForegroundColor Yellow
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit 0
 }
 
 # ════════════════════════════════════════════════════════════
-# 模式 2：仅锁定（要求路径已通过模式 1 写入）
+# 模式 2：仅锁定
 # ════════════════════════════════════════════════════════════
 if ($Mode -eq "2") {
     $ExistingPath = [System.Environment]::GetEnvironmentVariable($EnvVarName, "Machine")
@@ -185,6 +222,8 @@ if ($Mode -eq "2") {
         Write-Host ""
         Write-Host $T.NeedMode1First -ForegroundColor Yellow
         Write-Host ""
+        Write-Host $T.PressAnyKey -ForegroundColor Yellow
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         exit 0
     }
 
@@ -193,13 +232,13 @@ if ($Mode -eq "2") {
 
     foreach ($p in @($PolicyPath64, $PolicyPath32, $PolicyPathCU)) {
         if (Test-Path $p) {
-            Add-DenyACL -RegPath $p -Accounts @("BUILTIN\Users","NT AUTHORITY\NETWORK SERVICE","NT AUTHORITY\LOCAL SERVICE")
+            Add-DenyACL -RegPath $p -Accounts $PolicyACLAccounts
             Write-Host "  [OK] $p" -ForegroundColor Green
         }
     }
     foreach ($p in $TauriPaths) {
         if (Test-Path $p) {
-            Add-DenyACL -RegPath $p -Accounts @("NT AUTHORITY\NETWORK SERVICE","NT AUTHORITY\LOCAL SERVICE")
+            Add-DenyACL -RegPath $p -Accounts $TauriACLAccounts
             Write-Host "  [OK] $p" -ForegroundColor Green
         }
     }
@@ -207,6 +246,8 @@ if ($Mode -eq "2") {
     Write-Host ""
     Write-Host $T.LockDone -ForegroundColor Green
     Write-Host ""
+    Write-Host $T.PressAnyKey -ForegroundColor Yellow
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit 0
 }
 
@@ -214,7 +255,7 @@ if ($Mode -eq "2") {
 # 模式 1：设置路径 + 写入环境变量和注册表
 # ════════════════════════════════════════════════════════════
 
-# ── 输入路径，循环验证直到找到 exe ───────────────────────────
+# ── 输入路径，循环验证 ─────────────────────────────────────────────
 $WebView2Path = $null
 while ($true) {
     $Raw     = (Read-Host $T.InputPath).Trim().Trim('"').TrimEnd('\')
@@ -228,13 +269,13 @@ while ($true) {
     }
 }
 
-# ── 自动读取版本号 ────────────────────────────────────────────
+# ── 自动读取版本号 ─────────────────────────────────────────────────
 $VerInfo         = (Get-Item (Join-Path $WebView2Path "msedgewebview2.exe")).VersionInfo
 $WebView2Version = if ($VerInfo.ProductVersion) { $VerInfo.ProductVersion } else { $VerInfo.FileVersion }
 Write-Host "$($T.VersionDetect): $WebView2Version" -ForegroundColor Green
 Write-Host ""
 
-# ── [1/4] 写入系统级环境变量 ─────────────────────────────────
+# ── [1/4] 写入系统级环境变量 ──────────────────────────────────────
 Write-Host "========== $($T.Step1) ==========" -ForegroundColor Cyan
 
 [System.Environment]::SetEnvironmentVariable($EnvVarName, $WebView2Path, "Machine")
@@ -244,7 +285,7 @@ Write-Host "========== $($T.Step1) ==========" -ForegroundColor Cyan
 Write-Host "$($T.EnvOK)  [Machine] $EnvVarName = $WebView2Path" -ForegroundColor Green
 Write-Host "$($T.EnvClear)" -ForegroundColor Green
 
-# ── [2/4] 写入策略注册表 ─────────────────────────────────────
+# ── [2/4] 写入策略注册表 ──────────────────────────────────────────
 Write-Host ""
 Write-Host "========== $($T.Step2) ==========" -ForegroundColor Cyan
 
@@ -254,7 +295,7 @@ foreach ($p in @($PolicyPath64, $PolicyPath32, $PolicyPathCU)) {
     Write-Host "$($T.WrittenOK): $p" -ForegroundColor Green
 }
 
-# ── [3/4] 写入 Tauri 注册表 ──────────────────────────────────
+# ── [3/4] 写入 Tauri 注册表 ──────────────────────────────────────
 Write-Host ""
 Write-Host "========== $($T.Step3) ==========" -ForegroundColor Cyan
 
@@ -265,7 +306,7 @@ foreach ($p in $TauriPaths) {
     Write-Host "$($T.WrittenOK): $p  (pv=$WebView2Version)" -ForegroundColor Green
 }
 
-# ── [4/4] 验证 ───────────────────────────────────────────────
+# ── [4/4] 验证 ───────────────────────────────────────────────────
 Write-Host ""
 Write-Host "========== $($T.Step4) ==========" -ForegroundColor Cyan
 
@@ -287,3 +328,5 @@ foreach ($p in $TauriPaths) {
 Write-Host ""
 Write-Host $T.Done -ForegroundColor Yellow
 Write-Host ""
+Write-Host $T.PressAnyKey -ForegroundColor Yellow
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
