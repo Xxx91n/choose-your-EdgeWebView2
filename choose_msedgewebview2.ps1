@@ -49,7 +49,8 @@ if ($IsChinese) {
         InputPath      = @"
 请粘贴 msedgewebview2.exe 所在文件夹的完整路径
 （例如：D:\Test\Microsoft.WebView2.FixedVersionRuntime.133.0.3065.92.x64）
-路径: "@
+路径:
+"@
         PathOK         = "[OK] 路径有效，已检测到 msedgewebview2.exe"
         PathFail       = "[错误] 该路径下未找到 msedgewebview2.exe，请重新输入。"
         VersionDetect  = "[自动检测] 版本号"
@@ -92,7 +93,8 @@ Select mode:
         InputPath      = @"
 Paste the full path to the folder containing msedgewebview2.exe
 (e.g.: D:\Test\Microsoft.WebView2.FixedVersionRuntime.133.0.3065.92.x64)
-Path: "@
+Path:
+"@
         PathOK         = "[OK] Path valid, msedgewebview2.exe found"
         PathFail       = "[Error] msedgewebview2.exe not found at that path, please re-enter."
         VersionDetect  = "[Auto-detect] Version"
