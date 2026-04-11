@@ -51,6 +51,54 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 执行后重新运行脚本即可。如需还原，将 `RemoteSigned` 替换为 `Restricted` 重新执行即可。
 
+## 脚本运行后窗口一闪而过？
+
+直接双击 `.ps1` 文件时，Windows 会在脚本执行完毕后立即关闭 PowerShell 窗口，导致无法看到输出。
+
+**正确的运行方式：**
+- 右键脚本文件 → **以管理员身份运行**（会保留窗口直到按键退出）
+- 或在已打开的管理员 PowerShell 窗口中执行：
+  ```powershell
+  .\choose_msedgewebview2.ps1
+  ```
+
+## 调试脚本使用方法
+
+若主脚本无法正常运行，可使用仓库附带的 [debug_choose_msedgewebview2.ps1](./debug_choose_msedgewebview2.ps1) 进行诊断。
+
+**使用步骤：**
+1. 将 `debug_choose_msedgewebview2.ps1` 与 `choose_msedgewebview2.ps1` 放在**同一文件夹**下。
+2. 在管理员权限的 PowerShell 中执行：
+   ```powershell
+   .\debug_choose_msedgewebview2.ps1
+   ```
+3. 调试脚本会依次执行以下检查并将全部输出写入同目录的 `debug_log_时间戳.txt` 日志文件：
+
+   | 检查项 | 内容 |
+   | :--- | :--- |
+   | CHECK 0 | 管理员权限检测 |
+   | CHECK 1 | PowerShell 版本是否 ≥ 5.0 |
+   | CHECK 2 | 当前执行策略（CurrentUser / LocalMachine） |
+   | CHECK 3 | 主脚本文件是否存在于同目录 |
+   | CHECK 4 | 主脚本语法解析（AST），精确报告出错行号 |
+   | CHECK 5 | 所有注册表路径只读可达性（不写入） |
+   | CHECK 6 | 环境变量当前状态（Machine / User / Process 三层） |
+   | CHECK 7 | 实际启动主脚本，用 Tee-Object 将交互输出同步写入日志 |
+
+4. 提 issue 时请将生成的 `debug_log_*.txt` 文件附上。
+
+## 遇到某软件无法识别脚本指定的 WebView2？
+
+部分软件在检测不到系统 WebView2 时，会**自动联网下载安装**最新版 msedgewebview2（并附带拉回 Edge）。
+
+**如果你发现某款软件无法正确识别你通过本脚本指定的路径：**
+
+1. **立即断开网络连接**，防止软件触发自动下载安装逻辑。
+2. 前往 [Issues](https://github.com/Xxx91n/choose-your-EdgeWebView2/issues) 提交 issue，并附上：
+   - 软件名称和版本号
+   - `debug_log_*.txt` 日志文件内容
+   - 软件的安装来源（官网链接 / GitHub 等）
+
 ## 锁定注册表
 
 若需防止其他程序覆盖已写入的路径，在脚本启动后选择**模式 2**，即可为相应注册表路径添加 ACL 写入限制。
@@ -107,7 +155,11 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 **彻底清除已安装的 Edge 和 EdgeWebView2**
 以下两个 PowerShell 脚本均可用于卸载残留的 Edge 组件：
-- [EdgeRemover](https://github.com/he3als/EdgeRemover)
+- [EdgeRemover](https://github.com/he3als/EdgeRemover) — 也可通过以下命令直接运行最新版：
+  ```powershell
+  iex(irm https://cdn.jsdelivr.net/gh/he3als/EdgeRemover@main/get.ps1)
+  ```
+  或从 [GitHub Releases](https://github.com/he3als/EdgeRemover/releases/latest) 下载最新脚本。
 - [Remove-MS-Edge](https://github.com/ShadowWhisperer/Remove-MS-Edge)
 
 **获取便携版 Edge 并保持版本同步**

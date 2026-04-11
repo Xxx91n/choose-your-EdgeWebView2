@@ -51,6 +51,54 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 Re-run the script afterward. To revert, replace `RemoteSigned` with `Restricted` and run the command again.
 
+## Script Window Disappears Immediately?
+
+When you double-click a `.ps1` file directly, Windows closes the PowerShell window as soon as the script finishes, leaving no time to read the output.
+
+**Correct ways to run the script:**
+- Right-click the script file → **Run as administrator** (the window stays open until you press a key to exit)
+- Or run it from an already-open elevated PowerShell session:
+  ```powershell
+  .\choose_msedgewebview2.ps1
+  ```
+
+## Using the Debug Script
+
+If the main script fails to run, use the included [debug_choose_msedgewebview2.ps1](./debug_choose_msedgewebview2.ps1) to diagnose the issue.
+
+**Steps:**
+1. Place `debug_choose_msedgewebview2.ps1` in the **same folder** as `choose_msedgewebview2.ps1`.
+2. Run it from an elevated PowerShell session:
+   ```powershell
+   .\debug_choose_msedgewebview2.ps1
+   ```
+3. The debug script runs the following checks sequentially and writes all output to a timestamped `debug_log_*.txt` file in the same directory:
+
+   | Check | Description |
+   | :--- | :--- |
+   | CHECK 0 | Administrator privilege detection |
+   | CHECK 1 | PowerShell version ≥ 5.0 |
+   | CHECK 2 | Current execution policy (CurrentUser / LocalMachine scopes) |
+   | CHECK 3 | Main script file presence in the same directory |
+   | CHECK 4 | Main script AST syntax parse — reports exact error line numbers |
+   | CHECK 5 | Read-only registry path accessibility check (no writes performed) |
+   | CHECK 6 | Current environment variable state (Machine / User / Process scopes) |
+   | CHECK 7 | Live execution of the main script with Tee-Object mirroring output to the log |
+
+4. When filing an issue, attach the generated `debug_log_*.txt` file.
+
+## Application Fails to Recognize the Configured WebView2 Runtime?
+
+Some applications, upon failing to detect a system-registered WebView2 runtime, will **automatically download and install** the latest msedgewebview2 over the network — potentially pulling Edge back in the process.
+
+**If you find that an application does not correctly recognize the path configured by this script:**
+
+1. **Disconnect from the network immediately** to prevent the application from triggering its auto-download logic.
+2. Open an [Issue](https://github.com/Xxx91n/choose-your-EdgeWebView2/issues) and include:
+   - Application name and version
+   - Contents of the `debug_log_*.txt` log file
+   - Application source (official website / GitHub link, etc.)
+
 ## Locking the Registry
 
 To prevent other processes from overwriting the configured path, select **Mode 2** at startup. This applies Deny ACL entries to the relevant registry keys, restricting write access for low-privileged accounts.
@@ -107,7 +155,11 @@ Note: This will also block Windows 11 system updates and Microsoft Store functio
 
 **Completely remove existing Edge and EdgeWebView2 installations**
 Two PowerShell-based removal scripts are available:
-- [EdgeRemover](https://github.com/he3als/EdgeRemover)
+- [EdgeRemover](https://github.com/he3als/EdgeRemover) — you can also invoke the latest version directly:
+  ```powershell
+  iex(irm https://cdn.jsdelivr.net/gh/he3als/EdgeRemover@main/get.ps1)
+  ```
+  Or download the latest release from [GitHub Releases](https://github.com/he3als/EdgeRemover/releases/latest).
 - [Remove-MS-Edge](https://github.com/ShadowWhisperer/Remove-MS-Edge)
 
 **Obtain a portable Edge build and keep it up to date**
