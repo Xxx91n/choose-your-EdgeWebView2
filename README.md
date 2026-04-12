@@ -19,13 +19,12 @@
 1. 以管理员权限打开 PowerShell，运行以下指令。
 
 ```powershell
-[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;[Console]::InputEncoding=[System.Text.Encoding]::UTF8;$OutputEncoding=[System.Text.Encoding]::UTF8;iex(irm https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/choose_msedgewebview2.ps1)
+.\choose_msedgewebview2.ps1
 ```
-
-> **为什么要加前面三段？**
-> `iex(irm ...)` 在执行时，PowerShell 会先将下载的脚本字符串整体编译，再运行。若此时控制台编码仍为系统默认（GBK），脚本内的中文字面量会在编译阶段就已乱码，脚本内部的 `UTF8` 设置语句来不及生效。将编码设置提前到 `iex` 之前即可解决。
+或者复制 [choose_msedgewebview2.ps1](https://github.com/Xxx91n/choose-your-EdgeWebView2/blob/main/choose_msedgewebview2.ps1) 内容并粘贴运行。
 
 2. 选择界面语言（English / 简体中文）。
+
 3. 选择**模式 1**，粘贴 msedgewebview2.exe 所在文件夹的完整路径并回车，例如：
    `D:\Test\Microsoft.WebView2.FixedVersionRuntime.133.0.3065.92.x64`
    脚本会自动验证路径并读取版本号，然后完成写入。
