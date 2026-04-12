@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # debug_choose_msedgewebview2.ps1
 # Helper script for debugging choose_msedgewebview2.ps1
 # All write operations are DRY-RUN — registry and env vars are NOT modified
