@@ -16,12 +16,44 @@ Do you have specific customization requirements for your local msedgewebview2 ru
 
 ## How to Use
 
-1. [Download the script](https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/choose_msedgewebview2.ps1), or copy the full contents of [choose_msedgewebview2.ps1](./choose_msedgewebview2.ps1).
-2. Right-click and run as Administrator, or paste the contents into an elevated PowerShell session and press Enter.
-3. Select the interface language (English / Simplified Chinese).
-4. Select **Mode 1**, paste the full path to the folder containing `msedgewebview2.exe`, and press Enter. For example:
+1. Open PowerShell as Administrator and run the following command.
+```powershell
+iex(irm https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/choose_msedgewebview2.ps1)
+```
+2. Select the interface language (English / Simplified Chinese).
+3. Select **Mode 1**, paste the full path to the folder containing `msedgewebview2.exe`, and press Enter. For example:
    `D:\Test\Microsoft.WebView2.FixedVersionRuntime.133.0.3065.92.x64`
    The script will validate the path, auto-detect the version, and complete all write operations.
+
+## Locking the Registry
+
+To prevent other processes from overwriting the configured path, select **Mode 2** at startup. This applies Deny ACL entries to the relevant registry keys, restricting write access for low-privileged accounts.
+
+## Unlocking
+
+To modify or reconfigure the settings, select **Mode 3** at startup to remove the ACL restrictions, then use Mode 1 to rewrite the values.
+
+## Verified Compatible Applications
+
+The following applications have been confirmed to work correctly with a custom msedgewebview2 runtime configured via this script:
+
+- [pot](https://github.com/pot-app/pot-desktop)
+- [bypass](https://www.bypass.cn/)
+- [NetEase UU Remote](https://uuyc.163.com/)
+- [clash-verge-rev](https://github.com/clash-verge-rev/clash-verge-rev)
+- [OpenCode Desktop](https://opencode.ai/)
+
+## Defense Layer Reference
+
+| Step | Operation | Threat Scenario Mitigated |
+| :--- | :--- | :--- |
+| Machine-level environment variable | Set `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER` at `Machine` scope | Takes precedence over registry policy; ensures the WebView2 Loader resolves this value first |
+| Clear User-level environment variable | Set `User` scope to `$null` | Prevents a user-scope variable of the same name from shadowing the machine-scope value |
+| Registry ACL lock | Deny `SetValue`, `Delete`, `CreateSubKey` for Users / NetworkService on policy keys | Prevents low-privileged processes from overwriting the configured path |
+| Multi-path policy registry | Write to 64-bit, WOW64, and HKCU paths simultaneously | Covers 32-bit application loading and user-level policy override escape paths |
+| Tauri installation record | Write `pv` and `name` values to EdgeUpdate Clients registry key | Prevents the Tauri framework from triggering an automatic WebView2 installation when it cannot detect a registered runtime |
+
+After execution, you must **restart or log off and back in** — processes already running will continue to read from their inherited environment variable block until relaunched.
 
 ## Resolving Execution Policy Errors
 
@@ -50,17 +82,6 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 Re-run the script afterward. To revert, replace `RemoteSigned` with `Restricted` and run the command again.
-
-## Script Window Disappears Immediately?
-
-When you double-click a `.ps1` file directly, Windows closes the PowerShell window as soon as the script finishes, leaving no time to read the output.
-
-**Correct ways to run the script:**
-- Right-click the script file → **Run as administrator** (the window stays open until you press a key to exit)
-- Or run it from an already-open elevated PowerShell session:
-  ```powershell
-  .\choose_msedgewebview2.ps1
-  ```
 
 ## Using the Debug Script
 
@@ -99,36 +120,6 @@ Some applications, upon failing to detect a system-registered WebView2 runtime, 
    - Contents of the `debug_log_*.txt` log file
    - Application source (official website / GitHub link, etc.)
 
-## Locking the Registry
-
-To prevent other processes from overwriting the configured path, select **Mode 2** at startup. This applies Deny ACL entries to the relevant registry keys, restricting write access for low-privileged accounts.
-
-## Unlocking
-
-To modify or reconfigure the settings, select **Mode 3** at startup to remove the ACL restrictions, then use Mode 1 to rewrite the values.
-
-## Verified Compatible Applications
-
-The following applications have been confirmed to work correctly with a custom msedgewebview2 runtime configured via this script:
-
-- [pot](https://github.com/pot-app/pot-desktop)
-- [bypass](https://www.bypass.cn/)
-- [NetEase UU Remote](https://uuyc.163.com/)
-- [clash-verge-rev](https://github.com/clash-verge-rev/clash-verge-rev)
-- [OpenCode Desktop](https://opencode.ai/)
-
-## Defense Layer Reference
-
-| Step | Operation | Threat Scenario Mitigated |
-| :--- | :--- | :--- |
-| Machine-level environment variable | Set `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER` at `Machine` scope | Takes precedence over registry policy; ensures the WebView2 Loader resolves this value first |
-| Clear User-level environment variable | Set `User` scope to `$null` | Prevents a user-scope variable of the same name from shadowing the machine-scope value |
-| Registry ACL lock | Deny `SetValue`, `Delete`, `CreateSubKey` for Users / NetworkService on policy keys | Prevents low-privileged processes from overwriting the configured path |
-| Multi-path policy registry | Write to 64-bit, WOW64, and HKCU paths simultaneously | Covers 32-bit application loading and user-level policy override escape paths |
-| Tauri installation record | Write `pv` and `name` values to EdgeUpdate Clients registry key | Prevents the Tauri framework from triggering an automatic WebView2 installation when it cannot detect a registered runtime |
-
-After execution, you must **restart or log off and back in** — processes already running will continue to read from their inherited environment variable block until relaunched.
-
 ---
 
 ## Optional Enhancement: Suppress WebView2 Telemetry
@@ -155,11 +146,7 @@ Note: This will also block Windows 11 system updates and Microsoft Store functio
 
 **Completely remove existing Edge and EdgeWebView2 installations**
 Two PowerShell-based removal scripts are available:
-- [EdgeRemover](https://github.com/he3als/EdgeRemover) — you can also invoke the latest version directly:
-  ```powershell
-  iex(irm https://cdn.jsdelivr.net/gh/he3als/EdgeRemover@main/get.ps1)
-  ```
-  Or download the latest release from [GitHub Releases](https://github.com/he3als/EdgeRemover/releases/latest).
+- [EdgeRemover](https://github.com/he3als/EdgeRemover)
 - [Remove-MS-Edge](https://github.com/ShadowWhisperer/Remove-MS-Edge)
 
 **Obtain a portable Edge build and keep it up to date**

@@ -3,6 +3,11 @@
 # https://github.com/Xxx91n/choose-your-EdgeWebView2
 # ============================================================
 
+# ── [0] 强制 UTF-8 编码（兼容所有系统区域设置）──────────────────────
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding  = [System.Text.Encoding]::UTF8
+$OutputEncoding           = [System.Text.Encoding]::UTF8
+
 # ── [0] 管理员权限检测 ─────────────────────────────────────────────
 $IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator
