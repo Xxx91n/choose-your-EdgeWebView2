@@ -16,12 +16,44 @@
 
 ## 如何使用
 
-1. [下载脚本文件](https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/choose_msedgewebview2.ps1)，或复制 [choose_msedgewebview2.ps1](./choose_msedgewebview2.ps1) 中的全部内容。
-2. 右键以管理员身份运行脚本，或在管理员权限的 PowerShell 中粘贴内容并回车。
-3. 选择界面语言（English / 简体中文）。
-4. 选择**模式 1**，粘贴 msedgewebview2.exe 所在文件夹的完整路径并回车，例如：
+1.以管理员权限打开powershell，运行以下指令。
+```powershell
+iex(irm https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/choose_msedgewebview2.ps1)
+```
+2. 选择界面语言（English / 简体中文）。
+3. 选择**模式 1**，粘贴 msedgewebview2.exe 所在文件夹的完整路径并回车，例如：
    `D:\Test\Microsoft.WebView2.FixedVersionRuntime.133.0.3065.92.x64`
    脚本会自动验证路径并读取版本号，然后完成写入。
+
+## 锁定注册表
+
+若需防止其他程序覆盖已写入的路径，在脚本启动后选择**模式 2**，即可为相应注册表路径添加 ACL 写入限制。
+
+## 临时解锁
+
+若需修改或重新设置，在脚本启动后选择**模式 3**，即可移除 ACL 锁定，再使用模式 1 重新写入。
+
+## 已测试可正常运行的软件
+
+以下软件均已验证可通过本脚本正常识别自定义 msedgewebview2：
+
+- [pot](https://github.com/pot-app/pot-desktop)
+- [bypass](https://www.bypass.cn/)
+- [网易UU远程](https://uuyc.163.com/)
+- [clash-verge-rev](https://github.com/clash-verge-rev/clash-verge-rev)
+- [OpenCode Desktop](https://opencode.ai/)
+
+## 各层防御的作用说明
+
+| 步骤 | 操作 | 防御的逃逸场景 |
+| :--- | :--- | :--- |
+| 系统级环境变量写入 | `Machine` 级设置 `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER` | 优先级高于注册表策略，确保 Loader 首先命中此值 |
+| 清除 User 级环境变量 | 将 `User` 级设为 `$null` | 防止用户态的同名变量覆盖机器级设定 |
+| 注册表 ACL 锁定 | 拒绝 Users / NetworkService 对策略键写入 | 防止低权限进程篡改已写入的路径值 |
+| 策略注册表多路径 | 同时写入 64 位 / WOW64 / HKCU 三条路径 | 覆盖 32 位应用、用户级策略覆盖两种逃逸路径 |
+| Tauri 已安装记录 | 写入 EdgeUpdate Clients 注册表键 | 防止 Tauri 框架检测不到 WebView2 而触发自动安装 |
+
+执行完成后必须**重启或注销重新登录**，否则已运行的进程仍从旧的进程环境变量块中读取值。
 
 ## 执行策略报错的解决方法
 
@@ -50,17 +82,6 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 执行后重新运行脚本即可。如需还原，将 `RemoteSigned` 替换为 `Restricted` 重新执行即可。
-
-## 脚本运行后窗口一闪而过？
-
-直接双击 `.ps1` 文件时，Windows 会在脚本执行完毕后立即关闭 PowerShell 窗口，导致无法看到输出。
-
-**正确的运行方式：**
-- 右键脚本文件 → **以管理员身份运行**（会保留窗口直到按键退出）
-- 或在已打开的管理员 PowerShell 窗口中执行：
-  ```powershell
-  .\choose_msedgewebview2.ps1
-  ```
 
 ## 调试脚本使用方法
 
@@ -99,36 +120,6 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
    - `debug_log_*.txt` 日志文件内容
    - 软件的安装来源（官网链接 / GitHub 等）
 
-## 锁定注册表
-
-若需防止其他程序覆盖已写入的路径，在脚本启动后选择**模式 2**，即可为相应注册表路径添加 ACL 写入限制。
-
-## 临时解锁
-
-若需修改或重新设置，在脚本启动后选择**模式 3**，即可移除 ACL 锁定，再使用模式 1 重新写入。
-
-## 已测试可正常运行的软件
-
-以下软件均已验证可通过本脚本正常识别自定义 msedgewebview2：
-
-- [pot](https://github.com/pot-app/pot-desktop)
-- [bypass](https://www.bypass.cn/)
-- [网易UU远程](https://uuyc.163.com/)
-- [clash-verge-rev](https://github.com/clash-verge-rev/clash-verge-rev)
-- [OpenCode Desktop](https://opencode.ai/)
-
-## 各层防御的作用说明
-
-| 步骤 | 操作 | 防御的逃逸场景 |
-| :--- | :--- | :--- |
-| 系统级环境变量写入 | `Machine` 级设置 `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER` | 优先级高于注册表策略，确保 Loader 首先命中此值 |
-| 清除 User 级环境变量 | 将 `User` 级设为 `$null` | 防止用户态的同名变量覆盖机器级设定 |
-| 注册表 ACL 锁定 | 拒绝 Users / NetworkService 对策略键写入 | 防止低权限进程篡改已写入的路径值 |
-| 策略注册表多路径 | 同时写入 64 位 / WOW64 / HKCU 三条路径 | 覆盖 32 位应用、用户级策略覆盖两种逃逸路径 |
-| Tauri 已安装记录 | 写入 EdgeUpdate Clients 注册表键 | 防止 Tauri 框架检测不到 WebView2 而触发自动安装 |
-
-执行完成后必须**重启或注销重新登录**，否则已运行的进程仍从旧的进程环境变量块中读取值。
-
 ---
 
 ## 可选增强：关闭 WebView2 遥测
@@ -149,19 +140,15 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 以下为社区中常见的配套工具，可根据需要自行选择使用。**本项目不对以下工具的使用结果承担任何责任，请自行评估风险。**
 
-**禁止 Windows 11 自动更新/安装 Edge 和 EdgeWebView2**
+**禁止 Windows 11 系统层自动更新/安装 Edge 和 EdgeWebView2**: 
 注意：此操作会影响 Windows 11 系统正常更新和微软应用商店的功能。
 - [Windows Update Blocker](https://www.sordum.org/9470/windows-update-blocker-v1-8/)
 
-**彻底清除已安装的 Edge 和 EdgeWebView2**
+**彻底清除已安装的 Edge 和 EdgeWebView2**: 
 以下两个 PowerShell 脚本均可用于卸载残留的 Edge 组件：
-- [EdgeRemover](https://github.com/he3als/EdgeRemover) — 也可通过以下命令直接运行最新版：
-  ```powershell
-  iex(irm https://cdn.jsdelivr.net/gh/he3als/EdgeRemover@main/get.ps1)
-  ```
-  或从 [GitHub Releases](https://github.com/he3als/EdgeRemover/releases/latest) 下载最新脚本。
+- [EdgeRemover](https://github.com/he3als/EdgeRemover)
 - [Remove-MS-Edge](https://github.com/ShadowWhisperer/Remove-MS-Edge)
 
-**获取便携版 Edge 并保持版本同步**
+**获取保持版本同步、且禁止自动更新的便携版 Edge**: 
 若需使用便携版 Edge 而非系统安装版：
 - [microsoft-edge-multi-portable](https://github.com/bibicadotnet/microsoft-edge-multi-portable)
