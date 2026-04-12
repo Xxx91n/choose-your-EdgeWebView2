@@ -17,9 +17,14 @@ Do you have specific customization requirements for your local msedgewebview2 ru
 ## How to Use
 
 1. Open PowerShell as Administrator and run the following command.
+
 ```powershell
-iex(irm https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/choose_msedgewebview2.ps1)
+[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;[Console]::InputEncoding=[System.Text.Encoding]::UTF8;$OutputEncoding=[System.Text.Encoding]::UTF8;iex(irm https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/choose_msedgewebview2.ps1)
 ```
+
+> **Why the three extra segments?**
+> When using `iex(irm ...)`, PowerShell compiles the entire downloaded script string before executing it. If the console encoding is still the system default (e.g. GBK) at that point, Chinese string literals in the script are already decoded incorrectly during compilation — the UTF-8 encoding lines inside the script run too late to fix this. Setting the encoding before `iex` ensures the script is compiled correctly.
+
 2. Select the interface language (English / Simplified Chinese).
 3. Select **Mode 1**, paste the full path to the folder containing `msedgewebview2.exe`, and press Enter. For example:
    `D:\Test\Microsoft.WebView2.FixedVersionRuntime.133.0.3065.92.x64`
