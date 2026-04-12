@@ -1,7 +1,7 @@
 <div align="center">
 <h1 align="center">choose-your-EdgeWebView2</h1>
 
-[**English**](./README_EN.md) | **Simplified Chinese**
+**English** | [**简体中文**](./README.md)
 
 <p align="center">
 Do you want to completely break free from Edge and embrace the Chrome / Firefox ecosystem, but find that some software still depends on msedgewebview2?
