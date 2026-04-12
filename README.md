@@ -16,9 +16,10 @@
 
 ## 如何使用
 
-1. 以管理员权限打开 PowerShell，运行以下指令。
+1. [下载脚本](https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/choose_msedgewebview2.ps1)后，以管理员权限打开 PowerShell，运行以下指令。
 
 ```powershell
+cd 脚本所在路径
 .\choose_msedgewebview2.ps1
 ```
 或者复制 [choose_msedgewebview2.ps1](https://github.com/Xxx91n/choose-your-EdgeWebView2/blob/main/choose_msedgewebview2.ps1) 内容并粘贴运行。
