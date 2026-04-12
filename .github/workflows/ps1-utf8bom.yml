@@ -17,6 +17,7 @@ on:
   pull_request:
     paths:
       - '**/*.ps1'
+  workflow_dispatch:   # allow manual runs from the Actions tab
 
 permissions:
   contents: write   # needed to push the BOM-fixed commit back
@@ -39,24 +40,28 @@ jobs:
         run: |
           $eventName = "${{ github.event_name }}"
 
-          if ($eventName -eq 'pull_request') {
+          # workflow_dispatch: scan every .ps1 in the repo
+          if ($eventName -eq 'workflow_dispatch') {
+            $files = Get-ChildItem -Recurse -Filter '*.ps1' |
+                     Select-Object -ExpandProperty FullName |
+                     ForEach-Object { $_.Replace((Get-Location).Path + [IO.Path]::DirectorySeparatorChar, '').Replace('\','/') }
+          } elseif ($eventName -eq 'pull_request') {
             $base = "${{ github.event.pull_request.base.sha }}"
             $head = "${{ github.event.pull_request.head.sha }}"
+            $files = git diff --name-only --diff-filter=ACMRT "$base" "$head" -- '*.ps1' 2>$null |
+                     Where-Object { $_ -and (Test-Path $_) }
           } else {
             $base = "${{ github.event.before }}"
             $head = "${{ github.sha }}"
+            $files = git diff --name-only --diff-filter=ACMRT "$base" "$head" -- '*.ps1' 2>$null |
+                     Where-Object { $_ -and (Test-Path $_) }
           }
 
-          # ACMRT = Added / Copied / Modified / Renamed / Type-changed
-          # The -- '*.ps1' glob filters at git level for speed
-          $files = git diff --name-only --diff-filter=ACMRT "$base" "$head" -- '*.ps1' 2>$null |
-                   Where-Object { $_ -and (Test-Path $_) }
-
-          if ($null -eq $files -or $files.Count -eq 0) {
-            Write-Host 'No .ps1 files changed — nothing to do.'
+          if ($null -eq $files -or @($files).Count -eq 0) {
+            Write-Host 'No .ps1 files to process.'
             'has_files=false' | Out-File -Append $env:GITHUB_OUTPUT
           } else {
-            Write-Host "Found $($files.Count) changed .ps1 file(s):"
+            Write-Host "Found $(@($files).Count) .ps1 file(s):"
             $files | ForEach-Object { Write-Host "  $_" }
             $files | Set-Content 'changed_ps1.txt' -Encoding UTF8
             'has_files=true' | Out-File -Append $env:GITHUB_OUTPUT
@@ -87,9 +92,6 @@ jobs:
             if ($hasBom) {
               Write-Host "[OK]    Already UTF-8 BOM: $file"
             } else {
-              # ReadAllText auto-detects encoding (falls back to UTF-8 on Linux runner,
-              # or current ANSI on Windows — since the runner is Windows and the source
-              # was pushed from a UTF-8 git client the bytes are UTF-8 without BOM)
               $text = [System.IO.File]::ReadAllText($file, [System.Text.Encoding]::UTF8)
               [System.IO.File]::WriteAllText($file, $text, $utf8Bom)
               Write-Host "[FIXED] Converted to UTF-8 BOM: $file"
@@ -99,16 +101,16 @@ jobs:
 
           if ($fixed.Count -gt 0) {
             'needs_commit=true' | Out-File -Append $env:GITHUB_OUTPUT
-            Write-Host "\n$($fixed.Count) file(s) will be committed."
+            Write-Host "$($fixed.Count) file(s) will be committed."
           } else {
             'needs_commit=false' | Out-File -Append $env:GITHUB_OUTPUT
             Write-Host 'All files already had BOM — no commit needed.'
           }
 
-      # ── 4a. Commit & push (push to main only) ──────────────────────
-      - name: Commit BOM fixes (push events only)
+      # ── 4a. Commit & push (push / workflow_dispatch only) ──────────
+      - name: Commit BOM fixes (push / workflow_dispatch events only)
         if: |
-          github.event_name == 'push' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
           steps.collect.outputs.has_files == 'true' &&
           steps.convert.outputs.needs_commit == 'true'
         shell: pwsh
@@ -116,12 +118,10 @@ jobs:
           git config user.name  'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-          # Stage only the .ps1 files we touched (avoids staging unrelated changes)
           Get-Content 'changed_ps1.txt' -Encoding UTF8 |
             Where-Object { $_ -and (Test-Path $_) } |
             ForEach-Object { git add -- $_ }
 
-          # Double-check there is something to commit (idempotent guard)
           $status = git diff --cached --name-only
           if ($status) {
             git commit -m 'chore: normalize .ps1 files to UTF-8 BOM [skip ci]'
@@ -142,6 +142,6 @@ jobs:
           Write-Error @'
           One or more .ps1 files in this PR are missing the UTF-8 BOM.
           Please save them as "UTF-8 with BOM" in your editor before pushing.
-          (VS Code: bottom-right encoding selector → "UTF-8 with BOM")
+          (VS Code: bottom-right encoding selector -> "UTF-8 with BOM")
           '@
           exit 1
