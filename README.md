@@ -15,8 +15,7 @@
 </div>
 
 ## 如何使用
-
-1. [下载脚本](https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/choose_msedgewebview2.ps1)后，以管理员权限打开 PowerShell，运行以下指令。
+1. [下载脚本](https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/choose_msedgewebview2.ps1) 后，以管理员权限打开 PowerShell，运行以下指令。
 
 ```powershell
 cd 脚本所在路径
@@ -90,7 +89,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ## 调试脚本使用方法
 
-若主脚本无法正常运行，可使用仓库附带的 [debug_choose_msedgewebview2.ps1](./debug_choose_msedgewebview2.ps1) 进行诊断。
+若主脚本无法正常运行，可使用仓库附带的 [debug_choose_msedgewebview2.ps1](https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/debug_choose_msedgewebview2.ps1) 进行诊断。
 
 **使用步骤：**
 1. 将 `debug_choose_msedgewebview2.ps1` 与 `choose_msedgewebview2.ps1` 放在**同一文件夹**下。
