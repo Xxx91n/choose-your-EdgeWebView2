@@ -1,0 +1,147 @@
+# =============================================================
+# ps1-utf8bom.yml
+# Automatically converts all changed .ps1 files to UTF-8 with BOM
+# on every push to main that touches a .ps1 file.
+# On pull_request events the job only checks — it does NOT commit
+# (bots cannot push to forks, and force-pushing a PR branch is
+# noisy). A failed check reminds contributors to save as UTF-8 BOM.
+# =============================================================
+
+name: Enforce UTF-8 BOM for PowerShell scripts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.ps1'
+  pull_request:
+    paths:
+      - '**/*.ps1'
+
+permissions:
+  contents: write   # needed to push the BOM-fixed commit back
+
+jobs:
+  fix-ps1-encoding:
+    runs-on: windows-latest
+
+    steps:
+      # ── 1. Checkout with full history so git diff can compare SHAs ──
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── 2. Build the list of .ps1 files touched in this push/PR ────
+      - name: Collect changed .ps1 files
+        id: collect
+        shell: pwsh
+        run: |
+          $eventName = "${{ github.event_name }}"
+
+          if ($eventName -eq 'pull_request') {
+            $base = "${{ github.event.pull_request.base.sha }}"
+            $head = "${{ github.event.pull_request.head.sha }}"
+          } else {
+            $base = "${{ github.event.before }}"
+            $head = "${{ github.sha }}"
+          }
+
+          # ACMRT = Added / Copied / Modified / Renamed / Type-changed
+          # The -- '*.ps1' glob filters at git level for speed
+          $files = git diff --name-only --diff-filter=ACMRT "$base" "$head" -- '*.ps1' 2>$null |
+                   Where-Object { $_ -and (Test-Path $_) }
+
+          if ($null -eq $files -or $files.Count -eq 0) {
+            Write-Host 'No .ps1 files changed — nothing to do.'
+            'has_files=false' | Out-File -Append $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "Found $($files.Count) changed .ps1 file(s):"
+            $files | ForEach-Object { Write-Host "  $_" }
+            $files | Set-Content 'changed_ps1.txt' -Encoding UTF8
+            'has_files=true' | Out-File -Append $env:GITHUB_OUTPUT
+          }
+
+      # ── 3. Convert any file that lacks BOM ─────────────────────────
+      - name: Convert to UTF-8 BOM where needed
+        id: convert
+        if: steps.collect.outputs.has_files == 'true'
+        shell: pwsh
+        run: |
+          $utf8Bom  = New-Object System.Text.UTF8Encoding($true)
+          $changed  = Get-Content 'changed_ps1.txt' -Encoding UTF8 | Where-Object { $_ }
+          $fixed    = @()
+
+          foreach ($file in $changed) {
+            if (-not (Test-Path $file)) {
+              Write-Host "[SKIP]  File no longer on disk: $file"
+              continue
+            }
+
+            $bytes  = [System.IO.File]::ReadAllBytes($file)
+            $hasBom = $bytes.Length -ge 3 -and
+                      $bytes[0] -eq 0xEF -and
+                      $bytes[1] -eq 0xBB -and
+                      $bytes[2] -eq 0xBF
+
+            if ($hasBom) {
+              Write-Host "[OK]    Already UTF-8 BOM: $file"
+            } else {
+              # ReadAllText auto-detects encoding (falls back to UTF-8 on Linux runner,
+              # or current ANSI on Windows — since the runner is Windows and the source
+              # was pushed from a UTF-8 git client the bytes are UTF-8 without BOM)
+              $text = [System.IO.File]::ReadAllText($file, [System.Text.Encoding]::UTF8)
+              [System.IO.File]::WriteAllText($file, $text, $utf8Bom)
+              Write-Host "[FIXED] Converted to UTF-8 BOM: $file"
+              $fixed += $file
+            }
+          }
+
+          if ($fixed.Count -gt 0) {
+            'needs_commit=true' | Out-File -Append $env:GITHUB_OUTPUT
+            Write-Host "\n$($fixed.Count) file(s) will be committed."
+          } else {
+            'needs_commit=false' | Out-File -Append $env:GITHUB_OUTPUT
+            Write-Host 'All files already had BOM — no commit needed.'
+          }
+
+      # ── 4a. Commit & push (push to main only) ──────────────────────
+      - name: Commit BOM fixes (push events only)
+        if: |
+          github.event_name == 'push' &&
+          steps.collect.outputs.has_files == 'true' &&
+          steps.convert.outputs.needs_commit == 'true'
+        shell: pwsh
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          # Stage only the .ps1 files we touched (avoids staging unrelated changes)
+          Get-Content 'changed_ps1.txt' -Encoding UTF8 |
+            Where-Object { $_ -and (Test-Path $_) } |
+            ForEach-Object { git add -- $_ }
+
+          # Double-check there is something to commit (idempotent guard)
+          $status = git diff --cached --name-only
+          if ($status) {
+            git commit -m 'chore: normalize .ps1 files to UTF-8 BOM [skip ci]'
+            git push
+            Write-Host 'Pushed BOM-fix commit.'
+          } else {
+            Write-Host 'Nothing staged — skipping commit.'
+          }
+
+      # ── 4b. Fail the PR check if files need fixing ─────────────────
+      - name: Fail PR if BOM is missing (PR events only)
+        if: |
+          github.event_name == 'pull_request' &&
+          steps.collect.outputs.has_files == 'true' &&
+          steps.convert.outputs.needs_commit == 'true'
+        shell: pwsh
+        run: |
+          Write-Error @'
+          One or more .ps1 files in this PR are missing the UTF-8 BOM.
+          Please save them as "UTF-8 with BOM" in your editor before pushing.
+          (VS Code: bottom-right encoding selector → "UTF-8 with BOM")
+          '@
+          exit 1

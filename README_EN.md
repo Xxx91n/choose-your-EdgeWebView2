@@ -16,23 +16,40 @@ Do you have specific customization requirements for your local msedgewebview2 ru
 
 ## How to Use
 
-1. Open PowerShell as Administrator and run the following command.
+### Option A — Run directly (recommended, no download needed)
+
+Open PowerShell **as Administrator** and run:
 
 ```powershell
 [Console]::OutputEncoding=[System.Text.Encoding]::UTF8;[Console]::InputEncoding=[System.Text.Encoding]::UTF8;$OutputEncoding=[System.Text.Encoding]::UTF8;iex(irm https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/choose_msedgewebview2.ps1)
 ```
 
-> **Why the three extra segments?**
-> When using `iex(irm ...)`, PowerShell compiles the entire downloaded script string before executing it. If the console encoding is still the system default (e.g. GBK) at that point, Chinese string literals in the script are already decoded incorrectly during compilation — the UTF-8 encoding lines inside the script run too late to fix this. Setting the encoding before `iex` ensures the script is compiled correctly.
+> **Why the three extra segments before `iex`?**
+> When using `iex(irm ...)`, PowerShell compiles the entire downloaded script before executing it. If the console encoding is still the system default (e.g. GBK) at that point, Chinese string literals in the script are already mis-decoded during compilation — the UTF-8 encoding lines inside the script run too late to fix this. Prepending the three encoding assignments ensures the script is compiled under UTF-8.
 
-2. Select the interface language (English / Simplified Chinese).
-3. Select **Mode 1**, paste the full path to the folder containing `msedgewebview2.exe`, and press Enter. For example:
+### Option B — Download and run locally
+
+1. [Download the script](https://cdn.jsdelivr.net/gh/Xxx91n/choose-your-EdgeWebView2@refs/heads/main/choose_msedgewebview2.ps1) or grab it from the [latest release](https://github.com/Xxx91n/choose-your-EdgeWebView2/releases/latest).
+2. Open PowerShell **as Administrator**, navigate to the script folder, and run:
+
+```powershell
+cd <path to script folder>
+.\choose_msedgewebview2.ps1
+```
+
+If you see an execution-policy error, see the [Execution Policy](#resolving-execution-policy-errors) section below.
+
+---
+
+3. Select the interface language (English / Simplified Chinese).
+4. Select **Mode 1**, paste the full path to the folder containing `msedgewebview2.exe`, and press Enter. For example:
    `D:\Test\Microsoft.WebView2.FixedVersionRuntime.133.0.3065.92.x64`
-   The script will validate the path, auto-detect the version, and complete all write operations.
+   The script validates the path, auto-detects the version, and completes all write operations.
+5. After Mode 1 finishes, you will be offered the choice to **immediately apply ACL locks (Mode 2)** or exit.
 
 ## Locking the Registry
 
-To prevent other processes from overwriting the configured path, select **Mode 2** at startup. This applies Deny ACL entries to the relevant registry keys, restricting write access for low-privileged accounts.
+To prevent other processes from overwriting the configured path, select **Mode 2** at the main menu (or choose it when prompted after Mode 1). This applies Deny ACL entries to the relevant registry keys, restricting write access for low-privileged accounts.
 
 ## Unlocking
 
@@ -68,25 +85,21 @@ If you encounter the following error when running the script:
 File ...choose_msedgewebview2.ps1 cannot be loaded because running scripts is disabled on this system.
 ```
 
-This is caused by the PowerShell execution policy. Two recommended solutions are provided below:
+This is caused by the PowerShell execution policy. Two recommended solutions:
 
-**Option 1 (Recommended): Bypass execution policy for this run only — no system-wide changes**
-
-Run the following command in an elevated PowerShell session. This applies only to the current invocation and does not alter the system policy:
+**Option 1 (Recommended): Bypass for this run only — no system-wide changes**
 
 ```powershell
 PowerShell -ExecutionPolicy Bypass -File ".\choose_msedgewebview2.ps1"
 ```
 
-**Option 2: Set the execution policy for the current user**
-
-Run the following command in an elevated PowerShell session to permanently allow locally created scripts:
+**Option 2: Permanently allow locally created scripts for the current user**
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-Re-run the script afterward. To revert, replace `RemoteSigned` with `Restricted` and run the command again.
+Re-run the script afterward. To revert, replace `RemoteSigned` with `Restricted`.
 
 ## Using the Debug Script
 
@@ -94,11 +107,11 @@ If the main script fails to run, use the included [debug_choose_msedgewebview2.p
 
 **Steps:**
 1. Place `debug_choose_msedgewebview2.ps1` in the **same folder** as `choose_msedgewebview2.ps1`.
-2. Run it from an elevated PowerShell session:
+2. Run from an elevated PowerShell session:
    ```powershell
    .\debug_choose_msedgewebview2.ps1
    ```
-3. The debug script runs the following checks sequentially and writes all output to a timestamped `debug_log_*.txt` file in the same directory:
+3. The debug script runs the following checks and writes all output to a timestamped `debug_log_*.txt` file in the same directory:
 
    | Check | Description |
    | :--- | :--- |
@@ -117,7 +130,7 @@ If the main script fails to run, use the included [debug_choose_msedgewebview2.p
 
 Some applications, upon failing to detect a system-registered WebView2 runtime, will **automatically download and install** the latest msedgewebview2 over the network — potentially pulling Edge back in the process.
 
-**If you find that an application does not correctly recognize the path configured by this script:**
+**If an application does not correctly recognize the path configured by this script:**
 
 1. **Disconnect from the network immediately** to prevent the application from triggering its auto-download logic.
 2. Open an [Issue](https://github.com/Xxx91n/choose-your-EdgeWebView2/issues) and include:
@@ -143,17 +156,15 @@ Double-click `kill_tele.reg` and confirm the import. This is independent of the 
 
 ## Related Tools
 
-The following are community tools that are commonly used alongside this project. **This project assumes no responsibility for any consequences arising from the use of these tools. Evaluate the risks independently before proceeding.**
+The following community tools are commonly used alongside this project. **This project assumes no responsibility for any consequences arising from their use. Evaluate the risks independently.**
 
 **Block Windows 11 from automatically installing Edge and EdgeWebView2**
 Note: This will also block Windows 11 system updates and Microsoft Store functionality.
 - [Windows Update Blocker](https://www.sordum.org/9470/windows-update-blocker-v1-8/)
 
 **Completely remove existing Edge and EdgeWebView2 installations**
-Two PowerShell-based removal scripts are available:
 - [EdgeRemover](https://github.com/he3als/EdgeRemover)
 - [Remove-MS-Edge](https://github.com/ShadowWhisperer/Remove-MS-Edge)
 
-**Obtain a portable Edge build and keep it up to date**
-For users who prefer a portable runtime over a system installation:
+**Obtain a portable Edge build that stays up to date without auto-updating**
 - [microsoft-edge-multi-portable](https://github.com/bibicadotnet/microsoft-edge-multi-portable)
