@@ -3,35 +3,12 @@
 # https://github.com/Xxx91n/choose-your-EdgeWebView2
 # ============================================================
 
-# -- [0] UTF-8 self-bootstrap: if PS5.1 read this file as GBK, re-exec with UTF-8 --
-# This block uses only ASCII characters so it parses correctly under any encoding.
-# It detects garbled execution by checking if a known ASCII-only variable name can
-# be set, then re-launches itself reading the file as UTF-8 via -Command.
-if ($PSVersionTable.PSVersion.Major -lt 6) {
-    $selfPath = $MyInvocation.MyCommand.Path
-    if ($selfPath -and [System.IO.File]::Exists($selfPath)) {
-        $bytes    = [System.IO.File]::ReadAllBytes($selfPath)
-        $hasBOM   = ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)
-        $encoding = [System.Text.Encoding]::GetEncoding([System.Globalization.CultureInfo]::CurrentCulture.TextInfo.ANSICodePage)
-        $isGBK    = ($encoding.CodePage -ne 65001)
-        if ($isGBK -and -not $hasBOM) {
-            # Re-read file as UTF-8 and execute the content in-memory
-            $utf8Content = [System.IO.File]::ReadAllText($selfPath, [System.Text.Encoding]::UTF8)
-            [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-            [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
-            $global:OutputEncoding    = [System.Text.Encoding]::UTF8
-            Invoke-Expression $utf8Content
-            exit
-        }
-    }
-}
-
-# -- [0] Force UTF-8 (for iex/irm path and BOM-aware path) -----------------------
+# ── [0] 强制 UTF-8 编码（兼容所有系统区域设置）──────────────────────
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
 $OutputEncoding           = [System.Text.Encoding]::UTF8
 
-# -- [0] Admin check --------------------------------------------------------------
+# ── [0] 管理员权限检测 ─────────────────────────────────────────────
 $IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator
 )
@@ -45,7 +22,7 @@ if (-not $IsAdmin) {
     exit 1
 }
 
-# -- [0] Language selection -------------------------------------------------------
+# ── [0] 手动选择语言 ───────────────────────────────────────────────
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "  choose-your-EdgeWebView2" -ForegroundColor Cyan
@@ -163,7 +140,7 @@ Path
     }
 }
 
-# -- Constants --------------------------------------------------------------------
+# ── 常量（所有 Windows 电脑相同，无需动态获取）────────────────────
 $EnvVarName   = "WEBVIEW2_BROWSER_EXECUTABLE_FOLDER"
 $WebView2Guid = "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
 
@@ -175,25 +152,37 @@ $TauriPaths   = @(
     "HKLM:\SOFTWARE\Microsoft\EdgeUpdate\Clients\$WebView2Guid"
 )
 
+# ACL 账户列表（策略注册表路径用）
 $PolicyACLAccounts = @("BUILTIN\Users", "NT AUTHORITY\NETWORK SERVICE", "NT AUTHORITY\LOCAL SERVICE")
+# ACL 账户列表（Tauri 注册表路径用）
 $TauriACLAccounts  = @("NT AUTHORITY\NETWORK SERVICE", "NT AUTHORITY\LOCAL SERVICE")
 
-# -- Function: Add Deny ACL via .NET (bypasses Set-Acl privilege restriction) -----
+# ── 内部函数：通过底层 .NET API 添加 Deny ACL（绕开 Set-Acl 的权限限制）─
 function Add-DenyACL {
     param([string]$RegPath, [string[]]$Accounts)
     if (-not (Test-Path $RegPath)) { return }
+
+    # 将 PowerShell 路径格式转换为 .NET RegistryKey 格式
     $hive    = $RegPath -replace '^(HKLM|HKCU):.*', '$1'
     $subKey  = $RegPath -replace '^HKL[MC]:\\', '' -replace '^HKCU:\\', ''
-    $rootKey = if ($hive -eq 'HKLM') { [Microsoft.Win32.Registry]::LocalMachine } else { [Microsoft.Win32.Registry]::CurrentUser }
+    $rootKey = if ($hive -eq 'HKLM') {
+        [Microsoft.Win32.Registry]::LocalMachine
+    } else {
+        [Microsoft.Win32.Registry]::CurrentUser
+    }
+
     try {
-        $key = $rootKey.OpenSubKey($subKey,
+        $key = $rootKey.OpenSubKey(
+            $subKey,
             [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree,
-            [System.Security.AccessControl.RegistryRights]::ChangePermissions)
+            [System.Security.AccessControl.RegistryRights]::ChangePermissions
+        )
         if ($null -eq $key) { return }
         $acl = $key.GetAccessControl()
         foreach ($acct in $Accounts) {
             $rule = New-Object System.Security.AccessControl.RegistryAccessRule(
-                $acct, "SetValue,Delete,CreateSubKey", "None", "None", "Deny")
+                $acct, "SetValue,Delete,CreateSubKey", "None", "None", "Deny"
+            )
             $acl.AddAccessRule($rule)
         }
         $key.SetAccessControl($acl)
@@ -203,20 +192,28 @@ function Add-DenyACL {
     }
 }
 
-# -- Function: Remove Deny ACL via .NET -------------------------------------------
+# ── 内部函数：通过底层 .NET API 移除 Deny ACL ─────────────────────
 function Remove-DenyACL {
     param([string]$RegPath, [string[]]$Accounts)
     if (-not (Test-Path $RegPath)) {
         Write-Host "  $($T.UnlockSkip): $RegPath" -ForegroundColor DarkGray
         return
     }
+
     $hive    = $RegPath -replace '^(HKLM|HKCU):.*', '$1'
     $subKey  = $RegPath -replace '^HKL[MC]:\\', '' -replace '^HKCU:\\', ''
-    $rootKey = if ($hive -eq 'HKLM') { [Microsoft.Win32.Registry]::LocalMachine } else { [Microsoft.Win32.Registry]::CurrentUser }
+    $rootKey = if ($hive -eq 'HKLM') {
+        [Microsoft.Win32.Registry]::LocalMachine
+    } else {
+        [Microsoft.Win32.Registry]::CurrentUser
+    }
+
     try {
-        $key = $rootKey.OpenSubKey($subKey,
+        $key = $rootKey.OpenSubKey(
+            $subKey,
             [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree,
-            [System.Security.AccessControl.RegistryRights]::ChangePermissions)
+            [System.Security.AccessControl.RegistryRights]::ChangePermissions
+        )
         if ($null -eq $key) {
             Write-Host "  $($T.UnlockSkip): $RegPath" -ForegroundColor DarkGray
             return
@@ -225,7 +222,8 @@ function Remove-DenyACL {
         $changed = $false
         foreach ($acct in $Accounts) {
             $rule = New-Object System.Security.AccessControl.RegistryAccessRule(
-                $acct, "SetValue,Delete,CreateSubKey", "None", "None", "Deny")
+                $acct, "SetValue,Delete,CreateSubKey", "None", "None", "Deny"
+            )
             if ($acl.RemoveAccessRule($rule)) { $changed = $true }
         }
         if ($changed) {
@@ -240,10 +238,11 @@ function Remove-DenyACL {
     }
 }
 
-# -- Function: Lock (shared by Mode 1 post-action and Mode 2) ---------------------
+# ── 内部函数：执行锁定（模式1完成后与模式2共用）─────────────────────
 function Invoke-LockMode {
     Write-Host ""
     Write-Host $T.LockStep -ForegroundColor Cyan
+
     foreach ($p in @($PolicyPath64, $PolicyPath32, $PolicyPathCU)) {
         if (Test-Path $p) {
             Add-DenyACL -RegPath $p -Accounts $PolicyACLAccounts
@@ -256,34 +255,39 @@ function Invoke-LockMode {
             Write-Host "  [OK] $p" -ForegroundColor Green
         }
     }
+
     Write-Host ""
     Write-Host $T.LockDone -ForegroundColor Green
 }
 
-# ================================================================================
-# Main menu
-# ================================================================================
+# ════════════════════════════════════════════════════════════
+# 主菜单
+# ════════════════════════════════════════════════════════════
 Write-Host ""
 Write-Host $T.ChooseMode
 
 $Mode = $null
 while ($Mode -notin @("1","2","3")) {
     $Mode = (Read-Host $T.InputMode).Trim()
-    if ($Mode -notin @("1","2","3")) { Write-Host $T.InvalidMode -ForegroundColor Red }
+    if ($Mode -notin @("1","2","3")) {
+        Write-Host $T.InvalidMode -ForegroundColor Red
+    }
 }
 
-# ================================================================================
-# Mode 3: Unlock
-# ================================================================================
+# ════════════════════════════════════════════════════════════
+# 模式 3：解锁
+# ════════════════════════════════════════════════════════════
 if ($Mode -eq "3") {
     Write-Host ""
     Write-Host $T.UnlockStep -ForegroundColor Cyan
+
     foreach ($p in @($PolicyPath64, $PolicyPath32, $PolicyPathCU)) {
         Remove-DenyACL -RegPath $p -Accounts $PolicyACLAccounts
     }
     foreach ($p in $TauriPaths) {
         Remove-DenyACL -RegPath $p -Accounts $TauriACLAccounts
     }
+
     Write-Host ""
     Write-Host $T.UnlockDone -ForegroundColor Green
     Write-Host ""
@@ -292,9 +296,9 @@ if ($Mode -eq "3") {
     exit 0
 }
 
-# ================================================================================
-# Mode 2: Lock only
-# ================================================================================
+# ════════════════════════════════════════════════════════════
+# 模式 2：仅锁定
+# ════════════════════════════════════════════════════════════
 if ($Mode -eq "2") {
     $ExistingPath = [System.Environment]::GetEnvironmentVariable($EnvVarName, "Machine")
     if (-not $ExistingPath) {
@@ -305,16 +309,20 @@ if ($Mode -eq "2") {
         $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         exit 0
     }
+
     Invoke-LockMode
+
     Write-Host ""
     Write-Host $T.PressAnyKey -ForegroundColor Yellow
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit 0
 }
 
-# ================================================================================
-# Mode 1: Set path + write env var and registry
-# ================================================================================
+# ════════════════════════════════════════════════════════════
+# 模式 1：设置路径 + 写入环境变量和注册表
+# ════════════════════════════════════════════════════════════
+
+# ── 输入路径，循环验证 ─────────────────────────────────────────────
 $WebView2Path = $null
 while ($true) {
     $Raw     = (Read-Host $T.InputPath).Trim().Trim('"').TrimEnd('\')
@@ -328,28 +336,36 @@ while ($true) {
     }
 }
 
+# ── 自动读取版本号 ─────────────────────────────────────────────────
 $VerInfo         = (Get-Item (Join-Path $WebView2Path "msedgewebview2.exe")).VersionInfo
 $WebView2Version = if ($VerInfo.ProductVersion) { $VerInfo.ProductVersion } else { $VerInfo.FileVersion }
 Write-Host "$($T.VersionDetect): $WebView2Version" -ForegroundColor Green
 Write-Host ""
 
+# ── [1/4] 写入系统级环境变量 ──────────────────────────────────────
 Write-Host "========== $($T.Step1) ==========" -ForegroundColor Cyan
+
 [System.Environment]::SetEnvironmentVariable($EnvVarName, $WebView2Path, "Machine")
 [System.Environment]::SetEnvironmentVariable($EnvVarName, $null,         "User")
 [System.Environment]::SetEnvironmentVariable($EnvVarName, $WebView2Path, "Process")
+
 Write-Host "$($T.EnvOK)  [Machine] $EnvVarName = $WebView2Path" -ForegroundColor Green
 Write-Host "$($T.EnvClear)" -ForegroundColor Green
 
+# ── [2/4] 写入策略注册表 ──────────────────────────────────────────
 Write-Host ""
 Write-Host "========== $($T.Step2) ==========" -ForegroundColor Cyan
+
 foreach ($p in @($PolicyPath64, $PolicyPath32, $PolicyPathCU)) {
     if (-not (Test-Path $p)) { New-Item -Path $p -Force | Out-Null }
     Set-ItemProperty -Path $p -Name "*" -Value $WebView2Path -Type String
     Write-Host "$($T.WrittenOK): $p" -ForegroundColor Green
 }
 
+# ── [3/4] 写入 Tauri 注册表 ──────────────────────────────────────
 Write-Host ""
 Write-Host "========== $($T.Step3) ==========" -ForegroundColor Cyan
+
 foreach ($p in $TauriPaths) {
     if (-not (Test-Path $p)) { New-Item -Path $p -Force | Out-Null }
     Set-ItemProperty -Path $p -Name "pv"   -Value $WebView2Version -Type String
@@ -357,16 +373,20 @@ foreach ($p in $TauriPaths) {
     Write-Host "$($T.WrittenOK): $p  (pv=$WebView2Version)" -ForegroundColor Green
 }
 
+# ── [4/4] 验证 ───────────────────────────────────────────────────
 Write-Host ""
 Write-Host "========== $($T.Step4) ==========" -ForegroundColor Cyan
+
 $MachineVal = [System.Environment]::GetEnvironmentVariable($EnvVarName, "Machine")
 $UserVal    = [System.Environment]::GetEnvironmentVariable($EnvVarName, "User")
 Write-Host "$($T.MachineEnv) : $(if ($MachineVal) { $MachineVal } else { $T.Empty })"
 Write-Host "$($T.UserEnv)    : $(if ($UserVal)    { $UserVal    } else { $T.EmptyCorrect })"
+
 foreach ($p in @($PolicyPath64, $PolicyPath32, $PolicyPathCU)) {
     $val = (Get-ItemProperty -Path $p -Name "*" -ErrorAction SilentlyContinue)."*"
     Write-Host "$($T.PolicyReg)  $($p.Split('\')[-3..-1] -join '\') = $(if ($val) { $val } else { $T.NotWritten })"
 }
+
 foreach ($p in $TauriPaths) {
     $pv = (Get-ItemProperty -Path $p -Name "pv" -ErrorAction SilentlyContinue).pv
     Write-Host "$($T.TauriReg)  $($p.Split('\')[-3..-1] -join '\')  pv = $(if ($pv) { $pv } else { $T.NotWritten })"
@@ -375,9 +395,9 @@ foreach ($p in $TauriPaths) {
 Write-Host ""
 Write-Host $T.Done -ForegroundColor Yellow
 
-# -- Post Mode 1: offer lock or exit ----------------------------------------------
+# ── 模式1完成后：询问是否立即锁定 ────────────────────────────────
 Write-Host ""
-Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
+Write-Host "────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
 Write-Host $T.AfterMode1Prompt -ForegroundColor Cyan
 Write-Host $T.AfterMode1Lock
 Write-Host $T.AfterMode1Exit
@@ -386,10 +406,14 @@ Write-Host ""
 $PostChoice = $null
 while ($PostChoice -notin @("2","x","X")) {
     $PostChoice = (Read-Host $T.AfterMode1Input).Trim()
-    if ($PostChoice -notin @("2","x","X")) { Write-Host $T.AfterMode1Invalid -ForegroundColor Red }
+    if ($PostChoice -notin @("2","x","X")) {
+        Write-Host $T.AfterMode1Invalid -ForegroundColor Red
+    }
 }
 
-if ($PostChoice -eq "2") { Invoke-LockMode }
+if ($PostChoice -eq "2") {
+    Invoke-LockMode
+}
 
 Write-Host ""
 Write-Host $T.PressAnyKey -ForegroundColor Yellow
