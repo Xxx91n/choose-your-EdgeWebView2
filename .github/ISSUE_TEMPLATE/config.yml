@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: README (简体中文)
+    url: https://github.com/Xxx91n/choose-your-EdgeWebView2/blob/main/README.md
+    about: 使用说明与调试方法 / Usage guide and debug instructions
+  - name: README (English)
+    url: https://github.com/Xxx91n/choose-your-EdgeWebView2/blob/main/README_EN.md
+    about: Usage guide and debug instructions

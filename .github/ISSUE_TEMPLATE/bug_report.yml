@@ -1,0 +1,80 @@
+name: Bug 报告 / Bug Report
+description: 报告脚本运行异常或非预期行为 / Report a malfunction or unexpected behavior
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你提交 Bug 报告！请尽量填写完整，以便快速复现和修复。
+        Thanks for taking the time to report a bug!
+
+  - type: input
+    id: os
+    attributes:
+      label: Windows 版本 / Windows Version
+      description: 在运行对话框（Win+R）输入 winver 查看 / Run winver to check
+      placeholder: "例如 / e.g. Windows 11 24H2 26100.3775"
+    validations:
+      required: true
+
+  - type: input
+    id: ps_version
+    attributes:
+      label: PowerShell 版本 / PowerShell Version
+      description: 运行 $PSVersionTable.PSVersion 查看 / Run $PSVersionTable.PSVersion to check
+      placeholder: "例如 / e.g. 5.1.26100.3775"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: 使用的模式 / Mode Used
+      description: 脚本启动后选择的模式 / Which mode did you select after launching the script?
+      options:
+        - 模式 1 / Mode 1 — 写入路径 / Write path
+        - 模式 2 / Mode 2 — 锁定注册表 / Lock registry
+        - 模式 3 / Mode 3 — 临时解锁 / Temporary unlock
+        - 未进入选择 / Did not reach mode selection
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述 / Bug Description
+      description: 清晰描述发生了什么，期望是什么 / What happened? What did you expect?
+      placeholder: |
+        实际行为 / Actual behavior: ...
+        期望行为 / Expected behavior: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤 / Steps to Reproduce
+      placeholder: |
+        1. 以管理员权限打开 PowerShell / Open PowerShell as administrator
+        2. 运行脚本，选择模式 ... / Run script, select mode ...
+        3. 观察到 / Got ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 调试日志 / Debug Log
+      description: 请附上 debug_log_*.txt 的内容，详见 README 调试脚本章节 / Attach the contents of debug_log_*.txt, see README debug section
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: software
+    attributes:
+      label: 相关软件（如有）/ Related Software (if any)
+      description: 哪款软件无法识别你指定的 WebView2 路径？/ Which app failed to recognize the specified WebView2 path?
+      placeholder: "例如 / e.g. pot v2.7.0 / clash-verge-rev v2.2.3"
+    validations:
+      required: false

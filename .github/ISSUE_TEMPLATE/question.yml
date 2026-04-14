@@ -1,0 +1,38 @@
+name: 使用问题 / Question
+description: 关于脚本使用、配置或运行环境的疑问 / Ask about usage, configuration, or environment
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提问前请先查阅 README 和已有 Issues，避免重复。
+        Please check the README and existing Issues before asking.
+
+  - type: dropdown
+    id: topic
+    attributes:
+      label: 问题类型 / Topic
+      options:
+        - 脚本运行 / Script execution
+        - 执行策略报错 / Execution policy error
+        - 注册表写入 / Registry write
+        - ACL 锁定 / ACL lock
+        - 遥测关闭 / Telemetry disable
+        - 其他 / Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: 你的问题 / Your Question
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 已尝试的方法 / What have you tried?
+      description: 可附上错误信息、PowerShell 输出或调试日志 / Attach error messages, PowerShell output, or debug logs if relevant.
+    validations:
+      required: false

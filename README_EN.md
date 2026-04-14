@@ -156,3 +156,11 @@ The following two PowerShell scripts can both be used to uninstall residual Edge
 **Get a portable version of Edge that stays version-synced and blocks automatic updates:**
 If you need to use a portable version of Edge rather than the system-installed version:
 - [microsoft-edge-multi-portable](https://github.com/bibicadotnet/microsoft-edge-multi-portable)
+
+## Contributing
+
+Submit an [issue](https://github.com/Xxx91n/choose-your-EdgeWebView2/issues) or [PR](https://github.com/Xxx91n/choose-your-EdgeWebView2/pulls).
+
+## License
+
+[MIT License](./LICENSE)

@@ -156,3 +156,11 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 **获取保持版本同步、且禁止自动更新的便携版 Edge**: 
 若需使用便携版 Edge 而非系统安装版：
 - [microsoft-edge-multi-portable](https://github.com/bibicadotnet/microsoft-edge-multi-portable)
+
+## 贡献
+
+提交 [issue](https://github.com/Xxx91n/choose-your-EdgeWebView2/issues) 或 [PR](https://github.com/Xxx91n/choose-your-EdgeWebView2/pulls)。
+
+## 许可证
+
+[MIT License](./LICENSE)

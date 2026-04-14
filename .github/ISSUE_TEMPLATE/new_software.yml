@@ -1,0 +1,53 @@
+name: 新软件适配请求 / New Software Compatibility Request
+description: 报告某款软件无法识别脚本指定的 WebView2 路径 / Report a software that fails to recognize the WebView2 path set by this script
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请先断开网络，防止软件触发自动下载安装 Edge。
+        Disconnect from the network first to prevent the software from auto-installing Edge.
+
+  - type: input
+    id: software
+    attributes:
+      label: 软件名称及版本 / Software Name and Version
+      placeholder: "例如 / e.g. pot v2.7.0"
+    validations:
+      required: true
+
+  - type: input
+    id: software_source
+    attributes:
+      label: 软件来源 / Software Source
+      placeholder: "例如 / e.g. https://github.com/pot-app/pot-desktop"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Windows 版本 / Windows Version
+      placeholder: "例如 / e.g. Windows 11 24H2 26100.3775"
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 现象描述 / Observed Behavior
+      description: 软件如何表现出未识别 WebView2？/ How does the software show it failed to detect WebView2?
+      placeholder: |
+        例如：软件启动后提示安装 WebView2，或联网下载了 msedgewebview2 安装包。
+        e.g. The software prompted to install WebView2 on launch, or downloaded the msedgewebview2 installer.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 调试日志 / Debug Log
+      description: 请附上 debug_log_*.txt 的内容 / Attach the contents of debug_log_*.txt
+      render: text
+    validations:
+      required: true
