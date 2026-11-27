@@ -155,7 +155,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 **获取保持版本同步、且禁止自动更新的便携版 Edge**: 
 若需使用便携版 Edge 而非系统安装版：
-- [microsoft-edge-multi-portable](https://github.com/bibicadotnet/microsoft-edge-multi-portable)
+- [edge-portable-chrome-next-mini](https://github.com/bibicadotnet/edge-portable-chrome-next-mini)
 
 ## 贡献
 
